@@ -17,9 +17,7 @@ if r.status_code != 200:
   print('Could not retrieve funds page, code %d' % r.status_code)
   sys.exit(1)
 
-soup_all = BeautifulSoup(r.text)
-
-links = soup_all.find_all('a', href=re.compile('/us/funds/snapshot'))
+links = BeautifulSoup(r.text).find_all('a', href=re.compile('/us/funds/snapshot'))
 
 funds = []
 
@@ -31,8 +29,7 @@ for link in links:
   if r.status_code != 200:
     print('Received status %d when retrieving %s symbol name' % (r.status_code, f['name']))
     continue
-  soup_name = BeautifulSoup(r.text)
-  f['symbol'] = soup_name.find('span', class_='note').text[2:-1]
+  f['symbol'] = BeautifulSoup(r.text).find('span', class_='note').text[2:-1]
 
   print(f['symbol'])
 
@@ -41,9 +38,7 @@ for link in links:
     print('Received status %d when retrieving %s morningstar info' % (r.status_code, f['name']))
     continue
 
-  soup_fund = BeautifulSoup(r.text)
-  
-  fund_attr = soup_fund.find('div', class_='r_title')
+  fund_attr = BeautifulSoup(r.text).find('div', class_='r_title')
 
   for i, child in enumerate(fund_attr.children):
     if i == 2:
