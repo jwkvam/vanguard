@@ -7,30 +7,38 @@ import pandas as pd
 
 from bs4 import BeautifulSoup
 
-VANGUARD_FUNDS_PAGE = 'http://quicktake.morningstar.com/fundfamily/vanguard/0C00001YUF/fund-list.aspx'
-NAME_OFFSET = 9  # remove 'Vanguard ' from names
+VANGUARD_BASE = 'https://personal.vanguard.com'
+MORNINGSTAR_BASE = 'http://quotes.morningstar.com/fund/f?region=USA&t='
 
-r = requests.get(VANGUARD_FUNDS_PAGE)
+VANGUARD_FUNDS_PAGE = '/us/funds/vanguard/FundsTableView'
+
+r = requests.get(VANGUARD_BASE + VANGUARD_FUNDS_PAGE)
 if r.status_code != 200:
   print('Could not retrieve funds page, code %d' % r.status_code)
   sys.exit(1)
 
 soup_all = BeautifulSoup(r.text)
 
-links = soup_all.find_all('a', href=re.compile('quote.morningstar.com/fund/f.aspx'))
+links = soup_all.find_all('a', href=re.compile('/us/funds/snapshot'))
 
 funds = []
 
 for link in links:
   f = {}
-  f['name'] = link.text[NAME_OFFSET:]
-  url = link['href'].strip()
-  f['symbol'] = url[-5:]  # vanguard mutual funds are all 5 characters
+
+  f['name'] = link.text
+  r = requests.get(VANGUARD_BASE + link['href'])
+  if r.status_code != 200:
+    print('Received status %d when retrieving %s symbol name' % (r.status_code, f['name']))
+    continue
+  soup_name = BeautifulSoup(r.text)
+  f['symbol'] = soup_name.find('span', class_='note').text[2:-1]
+
   print(f['symbol'])
 
-  r = requests.get(url)
+  r = requests.get(MORNINGSTAR_BASE + f['symbol'])
   if r.status_code != 200:
-    print('Received status %d when retrieving %s' % (r.status_code, f['name']))
+    print('Received status %d when retrieving %s morningstar info' % (r.status_code, f['name']))
     continue
 
   soup_fund = BeautifulSoup(r.text)
